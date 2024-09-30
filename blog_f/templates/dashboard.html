@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+</head>
+<body>
+    <h1>Welcome to the Dashboard</h1>
+
+    <!-- 所有角色都可以看到的内容 -->
+    <p>This section is visible to everyone: admin, user, and guest.</p>
+
+    <!-- 仅管理员可以看到的内容 -->
+    {% if role == 'admin' %}
+        <h2>Admin Section</h2>
+        <p>Only admins can see this content.</p>
+    {% endif %}
+
+    <!-- 仅用户和管理员可以看到的内容 -->
+    {% if role == 'admin' or role == 'user' %}
+        <h2>User and Admin Section</h2>
+        <p>This section is visible to both users and admins.</p>
+    {% endif %}
+
+    <!-- 仅访客可以看到的内容 -->
+    {% if role == 'guest' %}
+        <h2>Guest Section</h2>
+        <p>This content is only visible to guests.</p>
+    {% endif %}
+
+   
+</body>
+</html>

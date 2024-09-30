@@ -10,23 +10,33 @@ from . import db
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
+
+
 @bp.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         username = request.form['username']
         password = generate_password_hash(request.form['password'])
-        role = request.form.get('role', 'user')  # 从表单获取角色，默认是user
-        new_user = User(username=username, password=password, role=role)
-    try:
-        new_user = User(username='bossxu', password='your_hashed_password', role='admin')
-        db.session.add(new_user)
-        db.session.commit()
-    except IntegrityError:
-        db.session.rollback()
-        print("用户名已存在，插入操作已忽略")
+        role = request.form.get('role', 'user')  # 获取角色，默认是user
 
+        # 使用表单数据创建用户实例
+        new_user = User(username=username, password=password, role=role)
+
+        try:
+            db.session.add(new_user)  # 将新用户添加到会话
+            db.session.commit()       # 提交会话，将数据写入数据库
+        except IntegrityError:
+            db.session.rollback()  # 如果用户名已存在，回滚事务
+            print("用户名已存在，插入操作已忽略")
+            flash('Username already exists.', 'error')  # 提示用户用户名已存在
+            return render_template('auth/register.html')  # 返回注册页面以便用户重新输入
+
+        # 注册成功后重定向到登录页面
         return redirect(url_for('auth.login'))
+
+    # 如果是 GET 请求，渲染注册页面
     return render_template('auth/register.html')
+
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -47,13 +57,15 @@ def login():
             
             flash(f'Welcome, {user.username}!', 'success')
             
+            return redirect(url_for('blog.create'))
+
             # 根据角色跳转到不同的页面
             if user.role == 'admin':
-                return redirect(url_for('admin_dashboard'))
+                return redirect(url_for('dashboard'),role='admin')
             elif user.role == 'user':
-                return redirect(url_for('user_dashboard'))
+                return redirect(url_for('dashboard'),role='user')
             else:
-                return redirect(url_for('guest_dashboard'))
+                return redirect(url_for('dashboard'),role='guset')
         else:
             # 如果验证失败，闪现错误消息
             flash('Login failed. Check your username and password.', 'danger')
@@ -61,20 +73,22 @@ def login():
     
     return render_template('auth/login.html')
 
-def role_required(role):
+def roles_required(*roles):  # 接受多个角色
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             if 'user_id' not in session:
                 flash('You need to be logged in to access this page.', 'warning')
                 return redirect(url_for('auth.login'))
-            if session.get('role') != role:
+            user_role = session.get('role')
+            if user_role not in roles:
                 flash('You do not have permission to access this page.', 'danger')
                 return redirect(url_for('auth.login'))
             return f(*args, **kwargs)
         return decorated_function
     return decorator
-    
+
+
 @bp.route('/logout')
 def logout():
     
